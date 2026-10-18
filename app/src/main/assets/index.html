@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#1b6a87">
+<title>Photoelectric Effect Lab</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;margin:0}
+body{background:#e9f0f3;color:#10222b;font:17px/1.5 Roboto,"Segoe UI",system-ui,Arial,sans-serif}
+.app{height:100%;display:flex;flex-direction:column}
+.bar{background:#1b6a87;color:#fff;padding:12px 20px;box-shadow:0 2px 6px rgba(0,0,0,.25)}
+.bar h1{margin:0;font-size:1.3rem;font-weight:500}
+.bar p{margin:0;font-size:.82rem;opacity:.85}
+main{flex:1;overflow-y:auto;padding:12px;-webkit-overflow-scrolling:touch}
+.view[hidden]{display:none}
+.card{background:#fff;border-radius:14px;padding:14px;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,.14)}
+.two{display:grid;grid-template-columns:1fr;grid-gap:12px}
+.three{display:grid;grid-template-columns:1fr;grid-gap:18px}
+@media(min-width:820px){.two{grid-template-columns:1.25fr 1fr}.three{grid-template-columns:repeat(3,1fr)}}
+canvas{width:100%;height:auto;display:block;border-radius:8px;background:#fff}
+h2{margin:0 0 6px;font-size:1.1rem;font-weight:700}
+label,.lab{display:block;font-weight:500;font-size:.95rem}
+.lab b{color:#1b6a87}
+input[type=range]{width:100%;height:38px;margin:2px 0;accent-color:#1b6a87}
+input.spec{-webkit-appearance:none;appearance:none;height:18px;border-radius:9px;margin:10px 0;
+ background:linear-gradient(90deg,#666 0%,#b00 7%,#f60 17%,#fe0 30%,#3c3 40%,#2bd 48%,#36f 55%,#80f 60%,#a6e 75%,#c9d 100%)}
+input.spec::-webkit-slider-thumb{-webkit-appearance:none;width:34px;height:34px;border-radius:50%;background:#fff;border:4px solid #10222b}
+select{width:100%;font:inherit;padding:10px;border:1px solid #b9c9d0;border-radius:10px;background:#fff;color:#10222b}
+.row{display:flex;align-items:center;flex-wrap:wrap;margin-top:8px}
+.row>*{margin:4px 14px 4px 0}
+button{font:500 1rem Roboto,Arial,sans-serif;border:0;background:#d2e8f1;color:#10222b;padding:12px 20px;border-radius:99px;cursor:pointer}
+button.pri{background:#1b6a87;color:#fff}
+.chk{display:flex;align-items:center;font-weight:500}
+.chk input{width:26px;height:26px;margin-right:8px}
+.read{display:grid;grid-template-columns:repeat(2,1fr);grid-gap:8px}
+@media(min-width:820px){.read{grid-template-columns:repeat(4,1fr)}}
+.read div{background:#f3f7f9;border-radius:10px;padding:8px 10px}
+.read small{display:block;color:#55696f;font-size:.78rem;line-height:1.2}
+.read b{font-size:1.25rem}
+.read .hl{background:#fdecea}
+.say{margin:10px 0 0;font-weight:500}
+.calc{background:#eef6fa;border-left:5px solid #1b6a87;border-radius:8px;padding:8px 12px;margin-top:10px;font-family:Consolas,monospace;font-size:.95rem}
+.f{font:500 1.35rem Georgia,serif;color:#1b6a87;margin:4px 0 8px}
+.card p{margin:0 0 8px}
+nav{display:flex;background:#fff;border-top:1px solid #d3dfe4}
+nav button{flex:1;border-radius:0;background:none;padding:14px 4px;color:#55696f;font-size:1rem}
+nav button.on{color:#10222b;box-shadow:inset 0 -4px 0 #1b6a87;font-weight:700}
+</style>
+</head>
+<body>
+<div class="app">
+<div class="bar"><h1>Photoelectric Effect Lab</h1><p>Works offline · shine light on a metal and watch electrons escape</p></div>
+<main>
+<section class="view" id="v-exp">
+  <div class="two">
+    <div class="card"><canvas id="ap" width="640" height="360" aria-label="Photoelectric effect apparatus"></canvas></div>
+    <div class="card"><canvas id="gr" width="440" height="360" aria-label="Current against voltage graph"></canvas>
+      <div class="row"><button id="clr">Clear graph</button><button id="plot" class="pri">Plot full curve</button></div></div>
+  </div>
+  <div class="card three">
+    <div><div class="lab">Wavelength: <b id="wlv"></b></div><input type="range" class="spec" id="wl" min="0" max="700" step="1" value="550" aria-label="Wavelength"></div>
+    <div><div class="lab">Light intensity: <b id="inv"></b></div><input type="range" id="in" min="0" max="20" step="1" value="10" aria-label="Intensity"></div>
+    <div><div class="lab">Voltage: <b id="vov"></b></div><input type="range" id="vo" min="-12" max="12" step="0.1" value="2.5" aria-label="Voltage"></div>
+    <div><label for="mt">Metal (work function)</label><select id="mt"></select></div>
+    <div class="row" style="margin:0"><label class="chk"><input type="checkbox" id="slow">Slow motion (×10)</label></div>
+  </div>
+  <div class="card"><div class="read" id="read"></div><p class="say" id="say"></p><div class="calc" id="calc"></div></div>
+</section>
+
+<section class="view" id="v-th" hidden>
+  <div class="card"><h2>What is the photoelectric effect?</h2>
+    <p>When light shines on a metal, it can knock electrons out of the surface. Light carries energy in tiny packets called photons, and each photon gives all of its energy to one electron.</p>
+    <p>An electron only escapes if one photon has at least a minimum energy, called the <b>work function</b> (W) of the metal. If the light's frequency is too low, nothing is emitted, even with very bright light. Sodium and caesium have small work functions, so even visible light works on them.</p></div>
+  <div class="card"><h2>Energy of one photon</h2>
+    <div class="f">E = hf &nbsp;&nbsp; f = c/λ &nbsp;&nbsp; E = hc/λ</div>
+    <p>h = 6.626 × 10⁻³⁴ J·s (Planck's constant), c = 3.0 × 10⁸ m/s, λ = wavelength. A handy shortcut: <b>E (eV) = 1239.84 ÷ λ (nm)</b>. Shorter wavelength means higher energy.</p>
+    <p>Unit: 1 eV = 1.6 × 10⁻¹⁹ J, the energy of one electron moved through 1 volt.</p></div>
+  <div class="card"><h2>Kinetic energy and stopping voltage</h2>
+    <div class="f">K<sub>max</sub> = hf − W &nbsp;&nbsp; K<sub>max</sub> = eV<sub>s</sub></div>
+    <p>The fastest emitted electrons have kinetic energy hf − W. If you make the collector negative, it pushes electrons back. At the <b>stopping voltage</b> V<sub>s</sub>, even the fastest electrons are turned around and the current drops to zero. So V<sub>s</sub> in volts equals K<sub>max</sub> in eV.</p></div>
+  <div class="card"><h2>What the graph shows</h2>
+    <p><b>Positive voltage:</b> all emitted electrons reach the collector, so the current is flat (saturation current).</p>
+    <p><b>More intensity:</b> more photons, more electrons, higher saturation current. The stopping voltage stays the same.</p>
+    <p><b>Shorter wavelength:</b> more energetic photons, so a larger stopping voltage.</p>
+    <p><b>Below the threshold wavelength (λ₀ = 1239.84 ÷ W):</b> no current at all.</p></div>
+  <div class="card"><h2>Try these</h2>
+    <p>1. Set sodium and 250 nm, then plot the curve. Read the stopping voltage.<br>
+    2. Lower the intensity and plot again. What changes, and what does not?<br>
+    3. Increase the wavelength slowly until the current vanishes. Compare this with λ₀.<br>
+    4. Switch to zinc, then platinum, and repeat. Which wavelengths still work? Platinum has the highest work function here.</p></div>
+  <div class="card"><h2>Solar power</h2>
+    <p>Solar cells use a related effect in silicon. Light frees electrons, and their flow through a circuit is electric current. One cell gives only about 0.6 V, so many cells are joined to raise the voltage.</p>
+    <p style="color:#55696f;font-size:.9rem;margin:0">Note: this lab uses a simplified model. Work functions are from the Handbook of Chemistry and Physics (via HyperPhysics, Georgia State University). They are for clean metal surfaces and change a little with surface condition and crystal face (for example, silver is 4.26 eV polycrystalline but up to 4.74 eV on some faces).</p></div>
+</section>
+</main>
+<nav><button id="n-exp" class="on">Experiment</button><button id="n-th">Theory</button></nav>
+</div>
+
+<script>
+var HC=1239.84,CT=299792.458;
+var metals=[["Cs",2.10,"Cesium"],["Na",2.28,"Sodium"],["K",2.30,"Potassium"],["Ca",2.90,"Calcium"],["U",3.60,"Uranium"],["Mg",3.68,"Magnesium"],["Cd",4.07,"Cadmium"],["Al",4.08,"Aluminum"],["Pb",4.14,"Lead"],["Ag",4.26,"Silver"],["Zn",4.30,"Zinc"],["Nb",4.30,"Niobium"],["Fe",4.50,"Iron"],["Hg",4.50,"Mercury"],["Cu",4.70,"Copper"],["Be",5.00,"Beryllium"],["Co",5.00,"Cobalt"],["Ni",5.01,"Nickel"],["Au",5.10,"Gold"],["Pt",6.35,"Platinum"]];
+var $=function(i){return document.getElementById(i)};
+var cols=["#e0452c","#1b6fb5","#2a9d5c","#a259d9","#e09b1d","#0a8f8f"];
+var pts=[],run=0,flag=false,els=[],cur={};
+$("mt").innerHTML=metals.map(function(m,i){return '<option value="'+i+'">'+m[2]+" ("+m[0]+") – "+m[1].toFixed(2)+" eV</option>"}).join("");
+$("mt").value=1;$("wl").value=550; /* 800-550 = 250 nm */
+
+function wlCol(l){
+  if(l<380)return "#a77cff";
+  if(l>750)return "#8a2a2a";
+  return "hsl("+Math.round((750-l)/370*275)+",95%,50%)";
+}
+function compute(){
+  var l=800-(+$("wl").value),I=+$("in").value,V=+$("vo").value,W=metals[+$("mt").value][1];
+  var E=HC/l,K=Math.max(0,E-W),Is=0.5*I,i=0;
+  if(K>0&&I>0){i=V>=0?Is:Math.max(0,Is*(1-(-V)/K))}
+  cur={l:l,I:I,V:V,W:W,E:E,f:CT/l,K:K,i:i,Is:Is};
+}
+function update(){
+  compute();var c=cur;
+  $("wlv").textContent=c.l+" nm · "+c.f.toFixed(0)+" THz · "+c.E.toFixed(2)+" eV";
+  $("inv").textContent=c.I;
+  $("vov").textContent=(c.V>0?"+":"")+c.V.toFixed(1)+" V";
+  var items=[["Photon energy",c.E.toFixed(2)+" eV"],["Frequency",c.f.toFixed(0)+" THz"],["Work function W",c.W.toFixed(2)+" eV"],["Threshold λ₀",(HC/c.W).toFixed(0)+" nm"],
+    ["Max kinetic energy",c.K.toFixed(2)+" eV"],["Stopping voltage",c.K.toFixed(2)+" V"],["Applied voltage",c.V.toFixed(1)+" V"],["Photocurrent",c.i.toFixed(2)+" mA"]];
+  $("read").innerHTML=items.map(function(a,i){return '<div'+(i==7?' class="hl"':'')+'><small>'+a[0]+'</small><b>'+a[1]+'</b></div>'}).join("");
+  var s;
+  if(c.E<c.W)s="Photon energy ("+c.E.toFixed(2)+" eV) is below the work function ("+c.W.toFixed(2)+" eV): no electrons are emitted, however bright the light.";
+  else if(c.I==0)s="Intensity is 0, so there is no light and no current.";
+  else if(c.V>=0)s="Electrons are emitted with up to "+c.K.toFixed(2)+" eV. The collector attracts all of them: saturation current.";
+  else if(-c.V>=c.K)s="The retarding voltage has reached the stopping voltage, so even the fastest electrons are pushed back. Current is zero.";
+  else s="The collector is negative and pushes electrons back. Only the faster ones reach it, so the current drops.";
+  $("say").textContent=s;
+  $("calc").innerHTML="E = 1239.84 ÷ "+c.l+" = "+c.E.toFixed(2)+" eV<br>K<sub>max</sub> = "+c.E.toFixed(2)+" − "+c.W.toFixed(2)+" = "+(c.E>c.W?c.K.toFixed(2)+" eV":"negative → no emission")+"<br>V<sub>s</sub> = K<sub>max</sub> ÷ e = "+c.K.toFixed(2)+" V";
+  drawGraph();
+}
+
+/* ---------- Graph ---------- */
+function drawGraph(){
+  var g=$("gr").getContext("2d"),w=440,h=360,L=54,B=46,T=22,Rr=16;
+  g.fillStyle="#fff";g.fillRect(0,0,w,h);
+  var px=function(v){return L+(v+12)/24*(w-L-Rr)},py=function(i){return h-B-i/12*(h-B-T)};
+  g.font="13px sans-serif";g.lineWidth=1;
+  for(var v=-12;v<=12;v+=2){g.strokeStyle=v==0?"#10222b":"#dde6ea";g.beginPath();g.moveTo(px(v),T);g.lineTo(px(v),h-B);g.stroke();g.fillStyle="#55696f";g.textAlign="center";g.fillText(v,px(v),h-B+16)}
+  for(var i=0;i<=12;i+=2){g.strokeStyle="#dde6ea";g.beginPath();g.moveTo(L,py(i));g.lineTo(w-Rr,py(i));g.stroke();g.fillStyle="#55696f";g.textAlign="right";g.fillText(i,L-8,py(i)+4)}
+  g.textAlign="center";g.fillStyle="#10222b";g.fillText("Voltage (V)",(L+w-Rr)/2,h-8);
+  g.save();g.translate(14,(T+h-B)/2);g.rotate(-Math.PI/2);g.fillText("Current (mA)",0,0);g.restore();
+  pts.forEach(function(p){g.fillStyle=cols[p.c%cols.length];g.beginPath();g.arc(px(p.v),py(p.i),3.6,0,7);g.fill()});
+  g.strokeStyle="#c9503d";g.lineWidth=2;g.beginPath();g.arc(px(cur.V),py(cur.i),9,0,7);g.stroke();
+}
+function addPoint(){pts.push({v:cur.V,i:cur.i,c:run});if(pts.length>3000)pts.shift()}
+
+/* ---------- Apparatus ---------- */
+var XE=219,XC=421;
+function wave(g,x0,y0,x1,y1,off){
+  var dx=x1-x0,dy=y1-y0,len=Math.sqrt(dx*dx+dy*dy),nx=-dy/len,ny=dx/len;
+  g.beginPath();
+  for(var t=0;t<=len;t+=3){
+    var a=5*Math.sin(t/6),x=x0+dx*t/len+nx*(off+a),y=y0+dy*t/len+ny*(off+a);
+    t?g.lineTo(x,y):g.moveTo(x,y);
+  }
+  g.stroke();
+}
+function frame(){
+  var g=$("ap").getContext("2d"),c=cur,sp=$("slow").checked?0.1:1;
+  if(!$("v-exp").hidden){
+    g.fillStyle="#fff";g.fillRect(0,0,640,360);
+    /* wires */
+    g.strokeStyle="#10222b";g.lineWidth=3;g.beginPath();
+    g.moveTo(215,165);g.lineTo(215,300);g.lineTo(292,300);g.moveTo(325,300);g.lineTo(425,300);g.lineTo(425,258);
+    g.moveTo(425,206);g.lineTo(425,165);g.stroke();
+    /* battery */
+    var pos=c.V>=0;g.lineWidth=4;g.beginPath();
+    g.moveTo(300,pos?288:278);g.lineTo(300,pos?312:322);g.moveTo(317,pos?278:288);g.lineTo(317,pos?322:312);g.stroke();
+    g.fillStyle="#10222b";g.font="bold 16px sans-serif";g.textAlign="center";
+    g.fillText(pos?"−":"+",292,276);g.fillText(pos?"+":"−",325,276);
+    g.font="bold 17px sans-serif";g.fillText("V = "+c.V.toFixed(1)+" V",308,345);
+    /* ammeter */
+    g.fillStyle="#fff";g.lineWidth=3;g.beginPath();g.arc(425,232,26,0,7);g.fill();g.stroke();
+    g.fillStyle="#10222b";g.font="bold 22px sans-serif";g.fillText("A",425,240);
+    g.font="bold 16px sans-serif";g.textAlign="left";g.fillText(c.i.toFixed(2)+" mA",460,238);
+    /* tube */
+    g.fillStyle="#eaf4fb";g.strokeStyle="#6a8fa3";g.lineWidth=3;
+    g.beginPath();if(g.roundRect){g.roundRect(175,50,290,140,40)}else{g.rect(175,50,290,140)}g.fill();g.stroke();
+    g.fillStyle="#7d8b93";g.fillRect(XE-6,75,9,90);g.fillRect(XC+0,75,9,90);
+    g.fillStyle="#10222b";g.font="bold 20px sans-serif";g.textAlign="center";
+    if(c.V!==0){g.fillText(pos?"−":"+",XE-3,68);g.fillText(pos?"+":"−",XC+4,68)}
+    /* light */
+    var lc=wlCol(c.l);g.strokeStyle=lc;g.lineWidth=3;g.globalAlpha=c.I==0?0.08:0.25+c.I*0.075;
+    g.setLineDash(c.l<380?[7,5]:[]);
+    for(var o=-18;o<=18;o+=18)wave(g,40,15,XE-8,112+o*0.2,o);
+    g.setLineDash([]);g.globalAlpha=1;
+    g.fillStyle="#10222b";g.font="15px sans-serif";g.textAlign="left";g.fillText("λ = "+c.l+" nm",20,150);
+    g.fillStyle=c.E>=c.W?"#2a9d5c":"#c9503d";g.fillText(c.E>=c.W?"photons energetic enough":"photons too weak",20,172);
+    /* electrons */
+    if(c.K>0&&c.I>0&&els.length<150&&Math.random()<c.I*0.05*sp)els.push({s:0,d:1,k:c.K*Math.random(),y:80+Math.random()*80,vy:(Math.random()-.5)*.6});
+    g.fillStyle="#2a6df4";
+    for(var i=els.length-1;i>=0;i--){
+      var e=els[i],KE=e.k+c.V*e.s;
+      if(KE<=0&&e.d>0)e.d=-1;
+      e.s+=e.d*Math.sqrt(Math.max(KE,0.04))*1.5*sp/202;
+      e.y+=e.vy*sp;if(e.y<78||e.y>162)e.vy=-e.vy;
+      if((e.s<=0&&e.d<0)||e.s>=1){els.splice(i,1);continue}
+      g.beginPath();g.arc(XE+4+e.s*(XC-XE-4),e.y,4,0,7);g.fill();
+    }
+  }
+  requestAnimationFrame(frame);
+}
+
+/* ---------- Events ---------- */
+["wl","in","mt"].forEach(function(id){$(id).oninput=$(id).onchange=function(){flag=true;els=[];update()}});
+$("vo").oninput=function(){if(flag){run++;flag=false}compute();addPoint();update()};
+$("clr").onclick=function(){pts=[];run=0;flag=false;update()};
+$("plot").onclick=function(){
+  run++;flag=false;var keep=$("vo").value;
+  for(var v=-12;v<=12.001;v+=0.1){$("vo").value=v.toFixed(1);compute();addPoint()}
+  $("vo").value=keep;update();
+};
+function tab(t){
+  $("v-exp").hidden=t!=="exp";$("v-th").hidden=t!=="th";
+  $("n-exp").className=t==="exp"?"on":"";$("n-th").className=t==="th"?"on":"";
+  document.querySelector("main").scrollTop=0;
+}
+$("n-exp").onclick=function(){tab("exp")};$("n-th").onclick=function(){tab("th")};
+update();frame();
+</script>
+</body>
+</html>
